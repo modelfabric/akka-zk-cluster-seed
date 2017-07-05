@@ -2,14 +2,15 @@
 import com.typesafe.sbt.SbtMultiJvm
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 
-organization := "com.sclasen"
+import scala.util.Try
+
+organization := "com.modelfabric"
 name := "akka-zk-cluster-seed"
-version := "0.1.9-SNAPSHOT"
 
-scalaVersion := "2.11.8"
-crossScalaVersions := Seq(scalaVersion.value, "2.12.1")
+scalaVersion := "2.12.2"
+crossScalaVersions := Seq(scalaVersion.value, "2.11.8")
 
-val akkaVersion = "2.4.18"
+val akkaVersion = "2.5.2"
 val akkaHttpVersion = "10.0.6"
 
 val akkaDependencies = Seq(
@@ -43,6 +44,9 @@ val testDependencies = Seq(
   "ch.qos.logback" % "logback-classic" % "1.1.2"
 ).map(_ % Test)
 
+val snapshotRepository = Try("snapshots" at sys.env("REPOSITORY_SNAPSHOTS")).toOption
+val releaseRepository =  Try("releases"  at sys.env("REPOSITORY_RELEASES" )).toOption
+
 lazy val rootProject = (project in file(".")).
   settings(
     libraryDependencies ++= (akkaDependencies ++ exhibitorOptionalDependencies ++ zkDependencies ++ testDependencies),
@@ -72,10 +76,11 @@ lazy val rootProject = (project in file(".")).
       </developers>),
 
     publishTo := {
-      val v = version.value
-      val nexus = "https://oss.sonatype.org/"
-      if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
-      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+      if (isSnapshot.value) {
+        snapshotRepository
+      } else {
+        releaseRepository
+      }
     }
   ).
   settings(Defaults.itSettings:_*).
